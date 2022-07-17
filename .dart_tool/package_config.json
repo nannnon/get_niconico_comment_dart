@@ -14,6 +14,18 @@
       "languageVersion": "2.12"
     },
     {
+      "name": "csslib",
+      "rootUri": "file:///Users/yuki/.pub-cache/hosted/pub.dartlang.org/csslib-0.17.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "html",
+      "rootUri": "file:///Users/yuki/.pub-cache/hosted/pub.dartlang.org/html-0.15.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "http",
       "rootUri": "file:///Users/yuki/.pub-cache/hosted/pub.dartlang.org/http-0.13.4",
       "packageUri": "lib/",
@@ -68,7 +80,7 @@
       "languageVersion": "2.17"
     }
   ],
-  "generated": "2022-07-16T07:59:15.831218Z",
+  "generated": "2022-07-17T12:08:03.102319Z",
   "generator": "pub",
   "generatorVersion": "2.17.6"
 }
