@@ -19,8 +19,8 @@ class NicoNamaWebSocket {
       throw Exception('alread called');
     }
 
-    final webSocketUrl = await _getWatchingServerWebSocketUrl(ch);
-    _connectWatchingServer(webSocketUrl);
+    final watchingServerWebSocketUrl = await _getWatchingServerWebSocketUrl(ch);
+    _connectWatchingServer(watchingServerWebSocketUrl);
   }
 
   Future<String> _getWatchingServerWebSocketUrl(String ch) async {
@@ -40,8 +40,12 @@ class NicoNamaWebSocket {
   }
 
   Future<void> _connectWatchingServer(String webSocketUrl) async {
+    if (_watchingServerWS != null) {
+      throw Exception('already called');
+    }
+
     _watchingServerWS = await io.WebSocket.connect(webSocketUrl);
-    _watchingServerWS!.listen(_processMessage, onError: (error) {
+    _watchingServerWS!.listen(_processWatchingServerMessage, onError: (error) {
       print('error:$error');
     }, onDone: () {
       print('socket closed');
@@ -61,12 +65,67 @@ class NicoNamaWebSocket {
     }
   }
 
-  void _processMessage(dynamic message) {
-    print(message);
-    //var msg = message.toString();
-    //bool room_exists = msg.indexOf('room') >= 0;
-    //bool ping_exists = msg.indexOf('ping') >= 0;
+  void _processWatchingServerMessage(dynamic message) {
+    var msg = message.toString();
+    bool room_exists = msg.indexOf('room') >= 0;
+    bool ping_exists = msg.indexOf('ping') >= 0;
 
-    //if (ping_exists) {}
+    if (room_exists) {
+      var msgJson = convert.jsonDecode(msg) as Map<String, dynamic>;
+      var commentServerWebSocketUrl = msgJson['data']['messageServer']['uri'];
+      var threadId = msgJson['data']['threadId'];
+      String sendData =
+          '[{"ping":{"content":"rs:0"}},{"ping":{"content":"ps:0"}},{"thread":{"thread":"${threadId}","version":"20061206","user_id":"guest","res_from":-150,"with_global":1,"scores":1,"nicoru":0}},{"ping":{"content":"pf:0"}},{"ping":{"content":"rf:0"}}]';
+      _connectCommentServer(commentServerWebSocketUrl, sendData);
+    }
+
+    if (ping_exists) {
+      _watchingServerWS!.add('{"type":"pong"}');
+      _watchingServerWS!.add('{"type":"keepSeat"}');
+    }
+  }
+
+  Future<void> _connectCommentServer(
+      String webSocketUrl, String sendData) async {
+    if (_commentServerWS != null) {
+      throw Exception('already called');
+    }
+
+    _commentServerWS = await io.WebSocket.connect(webSocketUrl, headers: {
+      'Sec-WebSocket-Extensions': 'permessage-deflate; client_max_window_bits',
+      'Sec-WebSocket-Protocol': 'msg.nicovideo.jp#json',
+    });
+    _commentServerWS!.listen(_processCommentSeverMessage, onError: (error) {
+      print('error:$error');
+    }, onDone: () {
+      print('socket closed');
+    }, cancelOnError: true);
+
+    _commentServerWS!.add(sendData);
+
+    try {
+      await _commentServerWS!.done;
+      print('WebSocket done');
+    } catch (error) {
+      print('WebSocket done with error $error');
+    }
+  }
+
+  void _processCommentSeverMessage(dynamic message) {
+    final msg = message.toString();
+    bool chat_exists = msg.indexOf('chat') >= 0;
+    bool ping_exists = msg.indexOf('ping') >= 0;
+
+    if (chat_exists) {
+      final messageJson =
+          convert.jsonDecode(message.toString()) as Map<String, dynamic>;
+      String comment = messageJson['chat']['content'];
+      print(comment);
+    }
+
+    if (ping_exists) {
+      _commentServerWS!.add('{"type":"pong"}');
+      _commentServerWS!.add('{"type":"keepSeat"}');
+    }
   }
 }
